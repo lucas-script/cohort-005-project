@@ -72,6 +72,8 @@ async function seed() {
 
   // Drop and recreate tables for a clean seed
   sqlite.exec(`
+    DROP TABLE IF EXISTS bookmarks;
+    DROP TABLE IF EXISTS notes;
     DROP TABLE IF EXISTS comments;
     DROP TABLE IF EXISTS course_ratings;
     DROP TABLE IF EXISTS video_watch_events;
@@ -2001,6 +2003,50 @@ This course is still in draft while the cluster examples are rewritten against t
     `Created ${countRows(schema.comments)} lesson comments across ${countRows(schema.comments, isNull(schema.comments.parentId))} threads.`
   );
 
+  // ─── Bookmarks and Notes ───
+  // Private to the Student who made them. Emma has a few of each across both
+  // courses so the Saved page has rows from more than one Course; Olivia has
+  // one of each; the other students have none, so the empty states show.
+
+  db.insert(schema.bookmarks)
+    .values([
+      { userId: students[0].id, lessonId: course1LessonIds[2], createdAt: daysAgo(28) },
+      { userId: students[0].id, lessonId: course1LessonIds[5], createdAt: daysAgo(12) },
+      { userId: students[0].id, lessonId: course2LessonIds[1], createdAt: hoursAgo(20) },
+      { userId: students[2].id, lessonId: course2LessonIds[3], createdAt: daysAgo(4) },
+    ])
+    .run();
+
+  db.insert(schema.notes)
+    .values([
+      {
+        userId: students[0].id,
+        lessonId: course1LessonIds[2],
+        body: "Install typescript globally first, or use npx tsc.\nRewatch from 3:40.",
+        createdAt: daysAgo(30),
+        updatedAt: daysAgo(29),
+      },
+      {
+        userId: students[0].id,
+        lessonId: course2LessonIds[1],
+        body: "PUT replaces the whole resource, PATCH changes part of it. *Not* the other way round.",
+        createdAt: daysAgo(6),
+        updatedAt: hoursAgo(18),
+      },
+      {
+        userId: students[2].id,
+        lessonId: course2LessonIds[3],
+        body: "# Questions for later\n- why 201 and not 200?",
+        createdAt: daysAgo(4),
+        updatedAt: daysAgo(4),
+      },
+    ])
+    .run();
+
+  console.log(
+    `Created ${countRows(schema.bookmarks)} bookmarks and ${countRows(schema.notes)} notes.`
+  );
+
   // ─── Lesson Progress ───
 
   // Helper to mark lessons as complete
@@ -2847,6 +2893,9 @@ This course is still in draft while the cluster examples are rewritten against t
   console.log(`  Enrollments: ${countRows(schema.enrollments)}`);
   console.log(`  Course ratings: ${countRows(schema.courseRatings)}`);
   console.log(`  Lesson comments: ${countRows(schema.comments)}`);
+  console.log(
+    `  Bookmarks: ${countRows(schema.bookmarks)}, notes: ${countRows(schema.notes)}`
+  );
   console.log(
     `  Lesson progress: ${countRows(schema.lessonProgress)} (${countRows(schema.lessonProgress, eq(schema.lessonProgress.status, LessonProgressStatus.Completed))} completed)`
   );
